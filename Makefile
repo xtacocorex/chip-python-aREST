@@ -1,4 +1,4 @@
-pckage: clean
+package: clean
 	python setup.py sdist
 
 publish: package
