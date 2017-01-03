@@ -22,7 +22,7 @@ setup(name             = 'CHIP_aREST',
       keywords         = 'CHIP NextThingCo IO GPIO PWM ADC REST',
       url              = 'https://github.com/xtacocorex/CHIP_aREST/',
       classifiers      = classifiers,
-      install_requires = [ "flask", "CHIP_IO" ],
+      install_requires = [ "flask", "CHIP_IO", "requests", "paho-mqtt" ],
       packages         = [ "CHIP_aREST" ],
       scripts          = [ "examples/chip-arest-basic.py" ])
 
