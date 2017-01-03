@@ -33,6 +33,7 @@ CHIP_INFO = {
         }
 VARIABLES = {}
 FUNCTIONS = {}
+PINS_IN_USE = []
 
 # Functions
 def set_id(id):
@@ -96,7 +97,64 @@ def get_chipio_version():
     return jsonify(resp)
 
 # ==== GPIO ====
+# Digital Write
+@app.route('/digital/<string:pin>/<int:value>', methods=['GET'])
+def digital_write_command(pin,value):
+    resp = copy.deepcopy(CHIP_INFO)
+    resp["connected"] = True
 
+    pin = pin.upper()
+
+    # Setup pin if it isn't already and then add it
+    if pin not in PINS_IN_USE:
+        GPIO.setup(pin,GPIO.OUT)
+        PINS_IN_USE.append(pin)
+
+    # Write data to the pin
+    if value == 0:
+        resp["message"] = "Writing 0 to " + pin
+        GPIO.output(pin,GPIO.LOW)
+    elif value == 1:
+        resp["message"] = "Writing 1 to " + pin
+        GPIO.output(pin,GPIO.HIGH)
+    else:
+        resp["message"] = "Invalid value specified for " + pin
+
+    return jsonify(resp)
+
+# Digital Read
+@app.route('/digital/<string:pin>/r', methods=['GET'])
+@app.route('/digital/<string:pin>', methods=['GET'])
+def digital_read_command(pin):
+    resp = copy.deepcopy(CHIP_INFO)
+    resp["connected"] = True
+
+    pin = pin.upper()
+
+    # Setup pin if it isn't already and then add it
+    if pin not in PINS_IN_USE:
+        GPIO.setup(pin,GPIO.IN)
+        PINS_IN_USE.append(pin)
+
+    # Read the pin
+    resp["message"] = GPIO.input(pin)
+
+    return jsonify(resp)
+
+# Digital Cleanup All
+@app.route('/digital/cleanup', methods=['GET'])
+def digital_pin_cleanup():
+    resp = copy.deepcopy(CHIP_INFO)
+    resp["connected"] = True
+
+    PINS_IN_USE = []
+    GPIO.cleanup()
+
+    resp["message"] = "All GPIO pins cleaned up"
+
+    return jsonify(resp)
+
+#TODO: Add Digital Cleanup for a Single Pin (dependent upon CHIP_IO feature #43)
 
 # ==== PWM ====
 

@@ -1,3 +1,8 @@
+0.1.1
+----
+* Added digital read/write capability
+* Added digital cleanup capability
+
 0.1.0
 ----
 * Initial stab at getting this to work
