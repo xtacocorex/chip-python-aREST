@@ -8,8 +8,6 @@ clean:
 	rm -rf CHIP_aREST.* build dist
 	rm -f *.pyo *.pyc
 	rm -f *.egg
-tests:
-	py.test
 
 build:
 	python setup.py build --force

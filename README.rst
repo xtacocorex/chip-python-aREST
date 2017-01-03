@@ -1,6 +1,6 @@
 chip_python_aREST
 ============================
-A REST APLI for controlling CHIP GPIO
+A REST API for controlling CHIP GPIO
 
 Manual::
 
