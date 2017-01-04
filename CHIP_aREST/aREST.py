@@ -61,19 +61,27 @@ def make_id(mylen):
 # ==== API Basic Data ====
 # Get the basic data
 @app.route('/', methods=['GET'])
+@app.route('/id', methods=['GET'])
 def index():
     CHIP_INFO["connected"] = True
     return jsonify(CHIP_INFO)
 
-# Get Variable
-@app.route('/<variable>', methods=['GET'])
+# Get and Set Variables
+# Execute functions
+@app.route('/<string:variable>', methods=['GET','PUT','POST'])
 def get_variables(variable=None):
     resp = copy.deepcopy(CHIP_INFO)
     resp["connected"] = True
 
     if variable in VARIABLES:
-        resp["connected"] = True
-        resp[variable] = VARIABLES[variable]
+        if request.method == 'GET':
+            resp["connected"] = True
+            resp[variable] = VARIABLES[variable]
+        elif request.method in ['PUT','POST']:
+            value = request.args.get('value')
+            resp["connected"] = True
+            VARIABLES[variable] = value
+            resp[variable] = value
 
     if variable in FUNCTIONS:
         # Handle function arguments
@@ -98,7 +106,7 @@ def get_chipio_version():
 
 # ==== GPIO ====
 # Digital Write
-@app.route('/digital/<string:pin>/<int:value>', methods=['GET'])
+@app.route('/digital/<string:pin>/<int:value>', methods=['GET','PUT','POST'])
 def digital_write_command(pin,value):
     resp = copy.deepcopy(CHIP_INFO)
     resp["connected"] = True
@@ -164,25 +172,25 @@ def digital_pin_cleanup():
 
 # ==== LRADC ====
 @app.route('/analog/<mode>', methods=['GET'])
-@app.route('/analog/<string:mode>/<string:dat>', methods=['GET'])
+@app.route('/analog/<string:mode>/<string:dat>', methods=['GET','PUT','POST'])
 def get_lradc_data(mode,dat=None):
     resp = copy.deepcopy(CHIP_INFO)
     resp["connected"] = True
     resp["mode"] = mode
     # Get Sample Rate
-    if mode == "sample_rate" and dat == None:
+    if mode == "sample_rate" and dat == None and request.method == 'GET':
         resp["message"] = LRADC.get_sample_rate()
     # Set Sample Rate
-    elif mode == "sample_rate" and dat != None:
+    elif mode == "sample_rate" and dat != None and request.method in ['GET','PUT','POST']:
         dat = float(dat)
         if dat in [32.25,62.5,125,250]:
             resp["message"] = "Setting LRADC Sample Rate to " + str(dat)
             LRADC.set_sample_rate(dat)
     # Scale Factor
-    elif mode == "scale_factor":
+    elif mode == "scale_factor" and request.method == 'GET':
         resp["message"] = LRADC.get_scale_factor()
     # Get Data
-    elif mode == "full" or mode == "raw":
+    elif (mode == "full" or mode == "raw") and request.method == 'GET':
         dat = int(dat)
         if dat not in [0,1]:
             abort(404)
@@ -197,7 +205,7 @@ def get_lradc_data(mode,dat=None):
             elif mode == "raw":
                 resp["message"] = LRADC.get_chan1_raw()
     else:
-        abort(404)
+        resp["message"] = "invalid command"
     return jsonify(resp)
 
 # ==== Utilities ====
@@ -210,7 +218,7 @@ def unexport_all_pins():
     return jsonify(resp)
 
 @app.route('/1v8_pin/<string:command>', methods=['GET'])
-@app.route('/1v8_pin/<string:command>/<float:voltage>', methods=['GET'])
+@app.route('/1v8_pin/<string:command>/<float:voltage>', methods=['GET','PUT','POST'])
 def handler_1v8pin(command,voltage=None):
     resp = copy.deepcopy(CHIP_INFO)
     resp["connected"] = True
@@ -226,12 +234,12 @@ def handler_1v8pin(command,voltage=None):
         # Enable the 1v8 Pin
         voltage = float(voltage)
         if voltage not in [1.8, 2.0, 2.6, 3.3]:
-            abort(404)
+            resp["message"] = "invalid voltage specified"
         else:
             resp["message"] = "Enabling the 1.8V Pin to " + str(voltage)
             UT.set_1v8_pin_voltage(voltage)
     else:
-        abort(404)
+        resp["message"] = "invalid command"
 
     return jsonify(resp)
 
