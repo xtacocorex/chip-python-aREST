@@ -8,7 +8,7 @@
 # https://github.com/marcoschwartz/aREST-ESP8266/blob/master/aREST.lua
 
 # Module Imports
-from flask import Flask, jsonify, abort, request
+from flask import Flask, jsonify, request
 import CHIP_IO.GPIO as GPIO
 import CHIP_IO.PWM as PWM
 import CHIP_IO.SOFTPWM as SPWM
@@ -193,7 +193,7 @@ def get_lradc_data(mode,dat=None):
     elif (mode == "full" or mode == "raw") and request.method == 'GET':
         dat = int(dat)
         if dat not in [0,1]:
-            abort(404)
+            resp["message"] = "Invalid ADC Channel Specified"
         elif dat == 0:
             if mode == "full":
                 resp["message"] = LRADC.get_chan0()
