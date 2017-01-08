@@ -22,16 +22,18 @@ For Python3::
 
 CHIP_IO is required to use this library, code and instructions are here: https://github.com/xtacocorex/CHIP_IO
 
-**Usage**
+Usage
+--------
 
 TBD
 
-**REST API**
+REST API
+---------
 
-***Basic***
+**Basics**
 
   +------------------+-------------------------------+------------------------------------------------------+
-  | Method           | Command                       | Description                                          |
+  | **Method**       | **Command**                   | **Description**                                      |
   +------------------+-------------------------------+------------------------------------------------------+
   | GET              | /                             | Basic Info                                           |
   +------------------+-------------------------------+------------------------------------------------------+
@@ -48,26 +50,28 @@ TBD
   | GET              | /<functionname>?value=<value> | Get value of <functionname> with <value> as input    |
   +------------------+-------------------------------+------------------------------------------------------+
 
-***GPIO***
+**GPIO**
 
-***PWM***
-
-TBD
-
-***Software PWM***
+**PWM**
 
 TBD
 
-***LRADC***
+**Software PWM**
 
-***Utilities***
+TBD
+
+**LRADC**
+
+**Utilities**
 
 
-**Credits**
+Credits
+--------
 
 Marco Schwartz for the original pi-aREST node.js code that was used as a basis for this code.
 (https://github.com/marcoschwartz/pi-aREST)
 
-**License**
+License
+-------
 
 CHIP Python aREST by Robert Wolterman, released under the MIT License.
