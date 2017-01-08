@@ -29,8 +29,16 @@ class CHIP_RestAPI(Flask):
         self.FUNCTIONS = {}
         self.PINS_IN_USE = []
 
+    def set_variable(self,name,value):
+        self.VARIABLES[name] = value
+
+    def get_variable(self,name):
+        if name in self.VARIABLES:
+            return self.VARIABLES[name]
+        else:
+            return -1
+
 # Flask App
-#app = Flask(__name__)
 app = CHIP_RestAPI(__name__)
 
 # Global Variables
@@ -40,9 +48,6 @@ CHIP_INFO = {
         "hardware" : "chip",
         "connected" : False
         }
-VARIABLES = {}
-FUNCTIONS = {}
-#PINS_IN_USE = []
 
 # Functions
 def set_id(id):
@@ -55,7 +60,7 @@ def set_hardware(hw):
     CHIP_INFO["hardware"] = hw
 
 def variable(name,value):
-    app.VARIABLES[name] = value
+    app.set_variable(name, value)
 
 def function(name,funct):
     app.FUNCTIONS[name] = funct
@@ -91,11 +96,11 @@ def get_variables(variable=None):
     if variable in app.VARIABLES:
         if request.method == 'GET':
             resp["connected"] = True
-            resp[variable] = app.VARIABLES[variable]
+            resp[variable] = app.get_variable(variable)
         elif request.method in ['PUT','POST']:
             value = request.args.get('value')
             resp["connected"] = True
-            VARIABLES[variable] = value
+            app.set_variable(variable,value)
             resp[variable] = value
 
     if variable in app.FUNCTIONS:
