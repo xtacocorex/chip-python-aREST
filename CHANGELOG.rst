@@ -1,3 +1,8 @@
+0.1.2
+----
+* Added per pin cleanup code
+* Added debug hook to return all the data
+
 0.1.1
 ----
 * Added digital read/write capability

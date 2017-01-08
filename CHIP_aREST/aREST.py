@@ -21,8 +21,17 @@ import copy
 import sys
 import paho.mqtt.client as mqtt
 
+# Classes
+class CHIP_RestAPI(Flask):
+    def __init__(self, *args, **kwargs):
+        super(CHIP_RestAPI, self).__init__(*args, **kwargs)
+        self.VARIABLES = {}
+        self.FUNCTIONS = {}
+        self.PINS_IN_USE = []
+
 # Flask App
-app = Flask(__name__)
+#app = Flask(__name__)
+app = CHIP_RestAPI(__name__)
 
 # Global Variables
 CHIP_INFO = {
@@ -33,7 +42,7 @@ CHIP_INFO = {
         }
 VARIABLES = {}
 FUNCTIONS = {}
-PINS_IN_USE = []
+#PINS_IN_USE = []
 
 # Functions
 def set_id(id):
@@ -46,10 +55,10 @@ def set_hardware(hw):
     CHIP_INFO["hardware"] = hw
 
 def variable(name,value):
-    VARIABLES[name] = value
+    app.VARIABLES[name] = value
 
 def function(name,funct):
-    FUNCTIONS[name] = funct
+    app.FUNCTIONS[name] = funct
 
 def make_id(mylen):
     text = ""
@@ -60,6 +69,8 @@ def make_id(mylen):
 
 # ==== API Basic Data ====
 # Get the basic data
+# GET: /
+# GET: /id
 @app.route('/', methods=['GET'])
 @app.route('/id', methods=['GET'])
 def index():
@@ -68,35 +79,52 @@ def index():
 
 # Get and Set Variables
 # Execute functions
+# GET: /<variablename>
+# PUT,POST: /<variablename>?value=<value>
+# GET: /<functionname>
+# GET: /<functionname>?value=<value>
 @app.route('/<string:variable>', methods=['GET','PUT','POST'])
 def get_variables(variable=None):
     resp = copy.deepcopy(CHIP_INFO)
     resp["connected"] = True
 
-    if variable in VARIABLES:
+    if variable in app.VARIABLES:
         if request.method == 'GET':
             resp["connected"] = True
-            resp[variable] = VARIABLES[variable]
+            resp[variable] = app.VARIABLES[variable]
         elif request.method in ['PUT','POST']:
             value = request.args.get('value')
             resp["connected"] = True
             VARIABLES[variable] = value
             resp[variable] = value
 
-    if variable in FUNCTIONS:
+    if variable in app.FUNCTIONS:
         # Handle function arguments
         if request.args:
             ddict = request.args.to_dict()
-            rtn = FUNCTIONS[variable](**ddict)
+            rtn = app.FUNCTIONS[variable](**ddict)
             resp["return_value"] = rtn
         else:
-            rtn = FUNCTIONS[variable]()
+            rtn = app.FUNCTIONS[variable]()
             resp["return_value"] = rtn
 
     return jsonify(resp)
 
+# ==== API DEBUG ====
+# GET: /debug
+@app.route('/debug', methods=['GET'])
+def get_api_debug():
+    resp = copy.deepcopy(CHIP_INFO)
+    resp["connected"] = True
+    resp["message"] = "Debug Data"
+    resp["variables"] = app.VARIABLES
+    resp["functions"] = app.FUNCTIONS
+    resp["pins in use"] = app.PINS_IN_USE
+    return jsonify(resp)
+
 # ==== CHIP_IO Basics ====
 # Get the CHIP_IO Version
+# GET: /version
 @app.route('/version', methods=['GET'])
 def get_chipio_version():
     resp = copy.deepcopy(CHIP_INFO)
@@ -105,7 +133,36 @@ def get_chipio_version():
     return jsonify(resp)
 
 # ==== GPIO ====
+# Digital Cleanup All
+# GET: /digital/cleanup
+# GET: /digital/cleanup/<pinname>
+@app.route('/digital/cleanup', methods=['GET'])
+@app.route('/digital/cleanup/<string:pin>', methods=['GET'])
+def digital_pin_cleanup(pin=None):
+    resp = copy.deepcopy(CHIP_INFO)
+    resp["connected"] = True
+
+    if not app.PINS_IN_USE:
+        resp["message"] = "No pins currently setup"
+    else:
+        if pin == None:
+            app.PINS_IN_USE = []
+            GPIO.cleanup()
+            resp["message"] = "All GPIO pins cleaned up"
+
+        #pin = pin.upper()
+
+        if pin.upper() not in app.PINS_IN_USE:
+            resp["message"] = "Pin not previously in use"
+        else:
+            resp["message"] = "Cleaning up %s" % pin.upper()
+            GPIO.cleanup(pin.upper())
+            app.PINS_IN_USE.remove(pin.upper())
+
+    return jsonify(resp)
+
 # Digital Write
+# GET,PUT,POST: /digital/<pinname>/[0,1]
 @app.route('/digital/<string:pin>/<int:value>', methods=['GET','PUT','POST'])
 def digital_write_command(pin,value):
     resp = copy.deepcopy(CHIP_INFO)
@@ -114,9 +171,9 @@ def digital_write_command(pin,value):
     pin = pin.upper()
 
     # Setup pin if it isn't already and then add it
-    if pin not in PINS_IN_USE:
+    if pin not in app.PINS_IN_USE:
         GPIO.setup(pin,GPIO.OUT)
-        PINS_IN_USE.append(pin)
+        app.PINS_IN_USE.append(pin)
 
     # Write data to the pin
     if value == 0:
@@ -131,8 +188,10 @@ def digital_write_command(pin,value):
     return jsonify(resp)
 
 # Digital Read
-@app.route('/digital/<string:pin>/r', methods=['GET'])
+# GET: /digital/<pinname>/r
+# GET: /digital/<pinname>
 @app.route('/digital/<string:pin>', methods=['GET'])
+@app.route('/digital/<string:pin>/r', methods=['GET'])
 def digital_read_command(pin):
     resp = copy.deepcopy(CHIP_INFO)
     resp["connected"] = True
@@ -140,29 +199,14 @@ def digital_read_command(pin):
     pin = pin.upper()
 
     # Setup pin if it isn't already and then add it
-    if pin not in PINS_IN_USE:
+    if pin not in app.PINS_IN_USE:
         GPIO.setup(pin,GPIO.IN)
-        PINS_IN_USE.append(pin)
+        app.PINS_IN_USE.append(pin)
 
     # Read the pin
     resp["message"] = GPIO.input(pin)
 
     return jsonify(resp)
-
-# Digital Cleanup All
-@app.route('/digital/cleanup', methods=['GET'])
-def digital_pin_cleanup():
-    resp = copy.deepcopy(CHIP_INFO)
-    resp["connected"] = True
-
-    PINS_IN_USE = []
-    GPIO.cleanup()
-
-    resp["message"] = "All GPIO pins cleaned up"
-
-    return jsonify(resp)
-
-#TODO: Add Digital Cleanup for a Single Pin (dependent upon CHIP_IO feature #43)
 
 # ==== PWM ====
 
@@ -171,6 +215,13 @@ def digital_pin_cleanup():
 
 
 # ==== LRADC ====
+# Methods
+# GET: /analog/sample_rate
+# GET: /analog/scale_factor
+# GET: /analog/full/[0,1]
+# GET: /analog/raw[0,1]
+# GET,PUT,POST: /analog/sample_rate/[32.25,62.5,125,250]
+
 @app.route('/analog/<mode>', methods=['GET'])
 @app.route('/analog/<string:mode>/<string:dat>', methods=['GET','PUT','POST'])
 def get_lradc_data(mode,dat=None):
@@ -209,6 +260,8 @@ def get_lradc_data(mode,dat=None):
     return jsonify(resp)
 
 # ==== Utilities ====
+# Methods
+# GET: /unexport_all
 @app.route('/unexport_all', methods=['GET'])
 def unexport_all_pins():
     UT.unexport_all()
@@ -217,6 +270,9 @@ def unexport_all_pins():
     resp["message"] = "Unexporting all the Pins"
     return jsonify(resp)
 
+# GET: /1v8_pin/voltage
+# GET: /1v8_pin/disable
+# GET,PUT,POST: 1v8_pin/enable/[1.8,2.0,2.6,3.3]
 @app.route('/1v8_pin/<string:command>', methods=['GET'])
 @app.route('/1v8_pin/<string:command>/<float:voltage>', methods=['GET','PUT','POST'])
 def handler_1v8pin(command,voltage=None):
@@ -249,7 +305,11 @@ def RestApp(host="0.0.0.0",port=1883,debug=False):
     try:
         app.run(host=host,port=port,debug=debug)
     except KeyboardInterrupt:
-        sys.exit(1)
+        GPIO.cleanup()
+        PWM.cleanup()
+        SPWM.cleanup()
+        LRADC.cleanup()
+        sys.exit(0)
 
 # DEBUG Testing
 if __name__ == '__main__':

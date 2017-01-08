@@ -7,7 +7,7 @@
 import CHIP_aREST.aREST as aREST
 
 # Setup the Device Info
-aREST.set_id(aREST.make_id(6))
+aREST.set_id('id4311')
 # or
 #aREST.set_id("Xy56E1")
 aREST.set_name("MY_CHIP")
