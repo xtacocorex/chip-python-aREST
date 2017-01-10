@@ -12,7 +12,7 @@ For Python2.7::
     cd chip_python_aREST
     sudo python setup.py install
 
-For Python3::
+For Python3 (**UNTESTED**)::
 
     sudo apt-get update
     sudo apt-get install git build-essential python3-dev python3-pip flex bison python-flask -y
@@ -21,14 +21,80 @@ For Python3::
     sudo python3 setup.py install
 
 CHIP_IO is required to use this library, code and instructions are here: https://github.com/xtacocorex/CHIP_IO
+Scripts using this library will need to be run with root permissions (sudo or started at boot by init script).
+
 
 Usage
 --------
 
-TBD
+**Example Script**
+
+The following is an example script that details a basic way to instantiate the REST API on your CHIP::
+
+    import CHIP_aREST.aREST as aREST
+
+    # Setup the id
+    # The id is a special identifier for your CHIP
+    aREST.set_id('5gad42')
+
+    # Setup the name
+    # The name can be anything you want
+    aREST.set_name("My Local CHIP")
+
+    # Setup the hardware type
+    # Not really needed until CHIP_IO get CHIP Pro support
+    aREST.set_hardware("chip")
+
+    # This is where any variables and functions would be setup
+
+    # Start the API
+    # Debug can be turned on/off
+    # Keep the host 0.0.0.0 to allow for local network access
+    # Port can be whatever you want it to be
+    aREST.RestApp(host="0.0.0.0"<Plug>PeepOpenort=3000,debug=True)
+
+The API also supports user specified variables and functions::
+
+    # First create the variable
+    temperature = 25.2
+    # Then add it to the API
+    aREST.variable("temperature",temperature)
+
+    # For funtions, we need to define it first
+    # Functions can have arguments and they can be fed in with url parameters
+    def myfunction():
+        # you can do whatever you want here
+        # CHIP_IO Specific calls
+        # crazy math
+        # or in this case
+        return "myfunction was called, howdy!"
+
+    # Now we add it to the API
+    # Make sure you don't add the () to the function
+    aREST.function("functiontest",myfunction)
+
+Cloud features TBD.
+
+Example scripts are found in the examples folder.  They are also installed into /usr/local/bin/.
 
 REST API
 ---------
+
+For local instances of the API, you can access the CHIP via:
+
+    http://192.168.0.5:3000/
+
+Replace the IP address with the one for your CHIP.  If you have avahi installed on your CHIP, you can replace the IP address with <hostname>.local.
+
+All of the REST API are detailed in the tables below.  Note the HTTP Method used for the call.  Not everything uses a normal HTTP GET method.
+
+If you use a web browser to send the URL to the CHIP, you are limited to the GET method.
+
+The curl program installed in Linux or MacOS/OS X can be used to test the API::
+
+    curl -X  GET http://chipdev.local:3000/digital/csid0/1
+    curl -X  GET http://chipdev.local:3000/temperature
+    curl -X  PUT http://chipdev.local:3000/temperature?value=-24.2
 
 **Basics**
 

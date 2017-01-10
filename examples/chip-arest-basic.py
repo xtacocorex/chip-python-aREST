@@ -21,6 +21,10 @@ aREST.variable("temperature",temperature)
 aREST.variable("humidity",humidity)
 
 # Function Example
+def myfunction():
+    return "hello from myfunction!"
+
+aREST.function("functiontest",myfunction)
 
 # Start
 aREST.RestApp(host="0.0.0.0",port=3000,debug=True)
