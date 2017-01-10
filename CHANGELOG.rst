@@ -1,3 +1,8 @@
+0.1.3
+----
+* Encapsulated everything into the class since it keeps everything cleaner
+  - By doing this, I cleaned up the actual Flask decorator code
+
 0.1.2
 ----
 * Added per pin cleanup code
