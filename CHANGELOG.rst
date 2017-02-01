@@ -1,3 +1,11 @@
+0.2.0
+----
+* Finished the encapsulation
+* PWM and SoftPWM added
+* Variable Delete
+* Functions verified
+* README updates
+
 0.1.3
 ----
 * Encapsulated everything into the class since it keeps everything cleaner

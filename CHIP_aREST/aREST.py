@@ -28,6 +28,7 @@ import paho.mqtt.client as mqtt
 
 # Signal Handling
 def sig_handler(signal, frame):
+    OM.unload("PWM0")
     GPIO.cleanup()
     PWM.cleanup()
     SPWM.cleanup()
@@ -115,7 +116,10 @@ class CHIP_RestAPI(Flask):
                 resp["connected"] = True
                 self.VARIABLES[variable] = value
                 resp[variable] = value
-
+            elif req_method == 'DELETE':
+                tmp = self.VARIABLES.pop(variable,None)
+                resp["message"] = "Variable {0} deleted".format(variable)
+                
         if variable in self.FUNCTIONS:
             #  Handle function arguments
             if req_args:
@@ -261,6 +265,77 @@ class CHIP_RestAPI(Flask):
 
         return jsonify(resp)
 
+    def api_pwm(self,chan,command,option,req_method,req_args):
+        resp = copy.deepcopy(self.CHIP_INFO)
+        resp["connected"] = True
+
+        # Default the channel to PWM0
+        # CHIP Pro will support PWM1
+        cname = "PWM0"
+
+        chan = int(chan)
+        if chan not in [0]: #,1]:
+            resp["message"] = "Invalid PWM Channel Specified"
+            return jsonify(resp)
+        else:
+            if chan == 0:
+                cname = "PWM0"
+            elif chan == 1:
+                cname = "PWM1"
+
+        # Figure out our command
+        if command == "start" and req_method == 'GET':
+            # Load the overlay
+            OM.load(cname)
+            # Get the arguments
+            duty_cycle = req_args.get('duty_cycle', 25.0)
+            frequency = req_args.get('frequency', 200.0)
+            polarity = req_args.get('polarity', 0)
+            # Start the PWM
+            PWM.start(cname,duty_cycle,frequency,polarity)
+            resp["message"] = "Setting {0} to duty cycle: {1}, frequency: {2}, and polarity {3}".format(cname,duty_cycle,frequency,polarity)
+        elif command == "stop" and req_method == 'GET':
+            PWM.stop(chame)
+            resp["message"] = "Stopping {0}".format(cname)
+        elif command == "cleanup" and req_method == 'GET':
+            # TODO: Handle per channel cleanup
+            PWM.cleanup()
+            OM.unload(cname)
+            resp["message"] = "Cleaning up and unloading {0}".format(cname)
+        elif command == "duty_cycle" and req_method in ['GET','PUT','POST']:
+            PWM.set_duty_cycle(cname, float(option))
+            resp["message"] = "Changing duty cycle on {0} to {1}".format(cname,option)
+        elif command == "frequency" and req_method in ['GET','PUT','POST']:
+            PWM.set_frequency(cname, float(option))
+            resp["message"] = "Changing duty cycle on {0} to {1}".format(cname,option)
+        return jsonify(resp)
+        
+    def api_softpwm(self,pin,command,option,req_method,req_args):
+        resp = copy.deepcopy(self.CHIP_INFO)
+        resp["connected"] = True
+
+        # Figure out our command
+        if command == "start" and req_method == 'GET':
+            # Get the arguments
+            duty_cycle = req_args.get('duty_cycle', 25.0)
+            frequency = req_args.get('frequency', 35.0)
+            polarity = req_args.get('polarity', 0)
+            # Start the SoftPWM
+            SPWM.start(pin,duty_cycle,frequency,polarity)
+            resp["message"] = "Setting {0} to duty cycle: {1}, frequency: {2}, and polarity {3}".format(pin,duty_cycle,frequency,polarity)
+        elif command == "stop" and req_method == 'GET':
+            SPWM.stop(pin)
+            resp["message"] = "Stopping {0}".format(pin)
+        elif command == "cleanup" and req_method == 'GET':
+            SPWM.cleanup(pin)
+            resp["message"] = "Cleaning up {0}".format(pin)
+        elif command == "duty_cycle" and req_method in ['GET','PUT','POST']:
+            SPWM.set_duty_cycle(pin, float(option))
+            resp["message"] = "Changing duty cycle on {0} to {1}".format(pin,option)
+        elif command == "frequency" and req_method in ['GET','PUT','POST']:
+            SPWM.set_frequency(pin, float(option))
+            resp["message"] = "Changing duty cycle on {0} to {1}".format(pin,option)
+        return jsonify(resp)
 
 # Flask App
 app = CHIP_RestAPI(__name__)
@@ -309,7 +384,7 @@ def index():
 # PUT,POST: /<variablename>?value=<value>
 # GET: /<functionname>
 # GET: /<functionname>?value=<value>
-@app.route('/<string:variable>', methods=['GET','PUT','POST'])
+@app.route('/<string:variable>', methods=['GET','PUT','POST','DELETE'])
 def get_variables(variable=None):
     return app.api_get_variables(variable,request.method,request.args)
 
@@ -354,10 +429,26 @@ def digital_write_command(pin,value):
     return app.api_digital_write(pin,value)
 
 # ==== PWM ====
-
+# GET: /pwm/[0,1]/start?duty_cycle=<dutycycle>&frequency=<frequency>&polarity=[0,1]
+# GET: /pwm/[0,1]/stop
+# GET: /pwm/[0,1]/cleanup
+# GET, PUT, POST: /pwm/[0,1]/duty_cycle/<dutycycle>
+# GET, PUT, POST: /pwm/[0,1]/frequency/<frequency>
+@app.route('/pwm/<int:chan>/<string:command>', methods=['GET','PUT','POST'])
+@app.route('/pwm/<int:chan>/<string:command>/<string:option>', methods=['GET','PUT','POST'])
+def pwm_all_commands(chan,command,option=None):
+    return app.api_pwm(chan,command,option,request.method,request.args)
 
 # ==== SOFTPWM ====
-
+# GET: /softpwm/<pinname>/start?duty_cycle=<dutycycle>&frequency=<frequency>&polarity=[0,1]
+# GET: /softpwm/<pinname>/stop
+# GET: /softpwm/<pinname>/cleanup
+# GET, PUT, POST: /softpwm/<pinname>/duty_cycle/<dutycycle>
+# GET, PUT, POST: /softpwm/<pinname>/frequency/<frequency>
+@app.route('/softpwm/<string:pin>/<string:command>', methods=['GET','PUT','POST'])
+@app.route('/softpwm/<string:pin>/<string:command>/<string:option>', methods=['GET','PUT','POST'])
+def softpwm_all_commands(pin,command,option=None):
+    return app.api_softpwm(pin,command,option,request.method,request.args)
 
 # ==== LRADC ====
 # Methods
