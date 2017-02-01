@@ -13,7 +13,7 @@ classifiers = ['Development Status :: 3 - Alpha',
                'Topic :: System :: Hardware']
 
 setup(name             = 'CHIP_aREST',
-      version          = '0.2.0',
+      version          = '0.2.1',
       author           = 'Robert Wolterman',
       author_email     = 'robert.wolterman@gmail.com',
       description      = 'A module to control the CHIP IO channels via a REST API',

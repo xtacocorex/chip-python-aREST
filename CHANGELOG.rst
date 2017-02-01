@@ -1,3 +1,7 @@
+0.2.1
+----
+* Python3 Fixes
+
 0.2.0
 ----
 * Finished the encapsulation

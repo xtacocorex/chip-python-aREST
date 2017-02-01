@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright (c) 2017 Robert Wolterman
 
 # Basic example using the CHIP aREST API

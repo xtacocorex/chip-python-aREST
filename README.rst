@@ -12,7 +12,7 @@ For Python2.7::
     cd chip_python_aREST
     sudo python setup.py install
 
-For Python3 (**UNTESTED**)::
+For Python3::
 
     sudo apt-get update
     sudo apt-get install git build-essential python3-dev python3-pip flex bison python-flask -y
@@ -23,6 +23,12 @@ For Python3 (**UNTESTED**)::
 CHIP_IO is required to use this library, code and instructions are here: https://github.com/xtacocorex/CHIP_IO
 Scripts using this library will need to be run with root permissions (sudo or started at boot by init script).
 
+This library is also available on pypi and can be installed via pip/pip3.:
+
+    # Python2
+    sudo pip install chip-python-aREST
+    # Python3
+    sudo pip3 install chip-python-aREST
 
 Usage
 --------
