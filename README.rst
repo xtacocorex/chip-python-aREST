@@ -8,7 +8,7 @@ For Python2.7::
 
     sudo apt-get update
     sudo apt-get install git build-essential python-dev python-pip flex bison python-flask -y
-    git clone git://github.com/xtacocorex/chip_python_aREST.git
+    git clone https://github.com/xtacocorex/chip_python_aREST.git
     cd chip_python_aREST
     sudo python setup.py install
 
@@ -16,7 +16,7 @@ For Python3::
 
     sudo apt-get update
     sudo apt-get install git build-essential python3-dev python3-pip flex bison python-flask -y
-    git clone git://github.com/xtacocorex/chip_python_aREST.git
+    git clone https://github.com/xtacocorex/chip_python_aREST.git
     cd chip_python_aREST
     sudo python3 setup.py install
 
