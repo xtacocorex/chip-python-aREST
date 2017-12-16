@@ -1,3 +1,8 @@
+0.3.0
+----
+* SERVO support
+* CHIP Pro support
+
 0.2.1
 ----
 * Python3 Fixes
