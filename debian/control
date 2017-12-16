@@ -1,0 +1,23 @@
+Source: chip-python-arest
+Maintainer: Robert Wolterman <robert.wolterman@gmail.com>
+Section: python
+Priority: optional
+Build-Depends: python-setuptools (>= 0.6b3), python-all-dev (>= 2.6.6-3), debhelper (>= 9), dh-python,
+               python3-all (>=3.2), python3-setuptools
+Standards-Version: 3.9.1
+
+Package: python-chip-python-arest
+Architecture: any
+Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}
+Description: A module to control CHIP IO channels via REST API
+ CHIP IO REST API
+ ============================
+ A REST API for controlling CHIP/CHIP Pro
+
+Package: python3-chip-python-arest
+Architecture: any
+Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}
+Description: A module to control CHIP IO channels via REST API
+ CHIP IO REST API
+ ============================
+ A REST API for controlling CHIP/CHIP Pro

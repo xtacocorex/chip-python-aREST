@@ -16,6 +16,7 @@ from flask import Flask, jsonify, request
 import CHIP_IO.GPIO as GPIO
 import CHIP_IO.PWM as PWM
 import CHIP_IO.SOFTPWM as SPWM
+import CHIP_IO.SERVO as SERVO
 import CHIP_IO.LRADC as LRADC
 import CHIP_IO.OverlayManager as OM
 import CHIP_IO.Utilities as UT
@@ -28,11 +29,13 @@ import paho.mqtt.client as mqtt
 
 # Signal Handling
 def sig_handler(signal, frame):
-    OM.unload("PWM0")
+    if not UT.is_chip_pro():
+        OM.unload("PWM0")
+        UT.disable_1v8_pin()
     GPIO.cleanup()
     PWM.cleanup()
     SPWM.cleanup()
-    UT.disable_1v8_pin()
+    SERVO.cleanup()
     sys.exit(0)
 
 signal.signal(signal.SIGTERM, sig_handler)
@@ -41,10 +44,15 @@ signal.signal(signal.SIGTERM, sig_handler)
 class CHIP_RestAPI(Flask):
     def __init__(self, *args, **kwargs):
         super(CHIP_RestAPI, self).__init__(*args, **kwargs)
+        # Figure out if we're a CHIP or CHIP Pro automatically
+        hw = "chip"
+        if UT.is_chip_pro():
+            hw = "chip pro"
+        # Build initial CHIP_INFO
         self.CHIP_INFO = {
             "id" : "001",
             "name" : "CHIPDEV",
-            "hardware" : "chip",
+            "hardware" : hw,
             "connected" : False
         }
         self.VARIABLES = {}
@@ -246,13 +254,13 @@ class CHIP_RestAPI(Flask):
         resp["connected"] = True
 
         # If the command is "voltage" we are requesting the current voltage setting
-        if command == "voltage":
+        if command == "voltage" and not UT.is_chip_pro():
             resp["message"] = "1.8V Pin Current Voltage: " + str(UT.get_1v8_pin_voltage())
         # Disable the 1v8 Pin
-        elif command == "disable":
+        elif command == "disable" and not UT.is_chip_pro():
             resp["message"] = "Disabling the 1.8V Pin"
             UT.disable_1v8_pin()
-        elif command == "enable":
+        elif command == "enable" and not UT.is_chip_pro():
             # Enable the 1v8 Pin
             voltage = float(voltage)
             if voltage not in [1.8, 2.0, 2.6, 3.3]:
@@ -286,7 +294,8 @@ class CHIP_RestAPI(Flask):
         # Figure out our command
         if command == "start" and req_method == 'GET':
             # Load the overlay
-            OM.load(cname)
+            if not UT.is_chip_pro():
+                OM.load(cname)
             # Get the arguments
             duty_cycle = req_args.get('duty_cycle', 25.0)
             frequency = req_args.get('frequency', 200.0)
@@ -300,14 +309,15 @@ class CHIP_RestAPI(Flask):
         elif command == "cleanup" and req_method == 'GET':
             # TODO: Handle per channel cleanup
             PWM.cleanup()
-            OM.unload(cname)
+            if not UT.is_chip_pro():
+                OM.unload(cname)
             resp["message"] = "Cleaning up and unloading {0}".format(cname)
         elif command == "duty_cycle" and req_method in ['GET','PUT','POST']:
             PWM.set_duty_cycle(cname, float(option))
             resp["message"] = "Changing duty cycle on {0} to {1}".format(cname,option)
         elif command == "frequency" and req_method in ['GET','PUT','POST']:
             PWM.set_frequency(cname, float(option))
-            resp["message"] = "Changing duty cycle on {0} to {1}".format(cname,option)
+            resp["message"] = "Changing frequency on {0} to {1}".format(cname,option)
         return jsonify(resp)
         
     def api_softpwm(self,pin,command,option,req_method,req_args):
@@ -334,7 +344,33 @@ class CHIP_RestAPI(Flask):
             resp["message"] = "Changing duty cycle on {0} to {1}".format(pin,option)
         elif command == "frequency" and req_method in ['GET','PUT','POST']:
             SPWM.set_frequency(pin, float(option))
-            resp["message"] = "Changing duty cycle on {0} to {1}".format(pin,option)
+            resp["message"] = "Changing frequency on {0} to {1}".format(pin,option)
+        return jsonify(resp)
+    
+    def api_servo(self,pin,command,option,req_method,req_args):
+        resp = copy.deepcopy(self.CHIP_INFO)
+        resp["connected"] = True
+
+        # Figure out the command
+        if command == "start" and req_method == 'GET':
+            # Get the arguments
+            angle = req_args.get('angle', 0.0)
+            max_range = req_args.get('max_range', 18.0)
+            # Start the servo
+            SERVO.start(pin,angle,max_range)
+            resp["message"] = "Setting {0} to angle: {1}, max_range: {2},".format(pin,angle,max_range)
+        elif command == "stop" and req_method == 'GET':
+            SERVO.stop(pin)
+            resp["message"] = "Stopping {0}".format(pin)
+        elif command == "cleanup" and req_method == 'GET':
+            SERVO.cleanup(pin)
+            resp["message"] = "Cleaning up {0}".format(pin)
+        elif command == "angle" and req_method in ['GET','PUT','POST']:
+            SERVO.set_angle(pin, float(option))
+            resp["message"] = "Changing angle on {0} to {1}".format(pin,option)
+        elif command == "frequency" and req_method in ['GET','PUT','POST']:
+            SERVO.set_range(pin, float(option))
+            resp["message"] = "Changing max range on {0} to {1}".format(pin,option)
         return jsonify(resp)
 
 # Flask App
@@ -362,10 +398,12 @@ def RestApp(host="0.0.0.0",port=1883,debug=False):
     try:
         app.run(host=host,port=port,debug=debug)
     except KeyboardInterrupt:
+        if not UT.is_chip_pro():
+            OM.unload("PWM0")
+            UT.disable_1v8_pin()
         GPIO.cleanup()
         PWM.cleanup()
         SPWM.cleanup()
-        UT.disable_1v8_pin()
         sys.exit(0)
 
 # ==== API Basic Data ====
@@ -449,6 +487,18 @@ def pwm_all_commands(chan,command,option=None):
 @app.route('/softpwm/<string:pin>/<string:command>/<string:option>', methods=['GET','PUT','POST'])
 def softpwm_all_commands(pin,command,option=None):
     return app.api_softpwm(pin,command,option,request.method,request.args)
+
+# ==== SERVO ====
+# Methods
+# GET: /servo/<pinname>/start?angle=<angle>&max_range=<range>
+# GET: /servo/<pinname>/stop
+# GET: /servo/<pinname>/cleanup
+# GET, PUT, POST: /servo/<pinname>/angle/<angle>
+# GET, PUT, POST: /servo/<pinname>/max_range/<range>
+@app.route('/servo/<string:pin>/<string:command>', methods=['GET','PUT','POST'])
+@app.route('/servo/<string:pin>/<string:command>/<string:option>', methods=['GET','PUT','POST'])
+def servo_all_commands(pin,command,option=None):
+    return api.api_servo(pin,command,option,request.method,request.args)
 
 # ==== LRADC ====
 # Methods

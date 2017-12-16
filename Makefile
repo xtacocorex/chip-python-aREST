@@ -1,10 +1,16 @@
 # PyPi Packaging
 package: clean
 	@echo " ** PACKAGING FOR PYPI **"
-	python setup.py sdist
+	python setup.py sdist bdist_wheel
+	python3 setup.py bdist_wheel
+
+# PyPi Packaging
+package3: package
+	@echo " ** PACKAGING FOR PYPI **"
+	python3 setup.py bdist_wheel
 
 # PyPi Publishing
-publish: package
+publish: package package3
 	@echo " ** UPLOADING TO PYPI **"
 	twine upload dist/*
 
@@ -15,6 +21,8 @@ clean:
 	rm -f *.pyo *.pyc
 	rm -f *.egg
 	rm -rf __pycache__
+	rm -rf debian/python-chip-python-arest*
+	rm -rf debian/python3-chip-python-arest*
 
 # Build all the things
 build:
@@ -38,3 +46,8 @@ install3: build3
 
 # Install for both Python 2 and 3
 all: install install3
+
+# Create a deb file
+debfile:
+	@echo " ** BUILDING DEBIAN PACKAGES **"
+	dpkg-buildpackage -rfakeroot -uc -b

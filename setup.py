@@ -13,16 +13,16 @@ classifiers = ['Development Status :: 3 - Alpha',
                'Topic :: System :: Hardware']
 
 setup(name             = 'CHIP_aREST',
-      version          = '0.2.1',
-      author           = 'Robert Wolterman',
+      version          = '0.3',
+      author         = 'Robert Wolterman',
       author_email     = 'robert.wolterman@gmail.com',
       description      = 'A module to control the CHIP IO channels via a REST API',
       long_description = open('README.rst').read() + open('CHANGELOG.rst').read(),
       license          = 'MIT',
-      keywords         = 'CHIP NextThingCo IO GPIO PWM ADC REST',
+      keywords         = 'CHIP CHIPPRO NextThingCo IO GPIO PWM ADC SERVO REST',
       url              = 'https://github.com/xtacocorex/CHIP_aREST/',
       classifiers      = classifiers,
       install_requires = [ "flask", "CHIP_IO", "requests", "paho-mqtt" ],
       packages         = [ "CHIP_aREST" ],
-      scripts          = [ "examples/chip-arest-basic.py" ])
+      scripts          = [ "examples/chip-arest-basic.py", "examples/chip-arest-cloud.py" ])
 
